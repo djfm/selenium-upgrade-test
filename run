@@ -1,0 +1,1 @@
+~/projects/pstest/bin/pstest test:run CloudUpgradeVerificationTest.php --bootstrap CloudUpgradeVerificationTest.php
