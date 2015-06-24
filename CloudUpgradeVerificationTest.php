@@ -12,9 +12,17 @@ class CloudUpgradeVerificationTest extends RemotePrestaShopTest
 {
     public function contextProvider()
     {
-        return [[
-            'url' => 'http://www.makeupatelier.fr'
-        ]];
+        $contexts = [];
+
+        $h = fopen(__DIR__ . DIRECTORY_SEPARATOR . 'urls.csv', 'r');
+        while (($row = fgetcsv($h))) {
+            $contexts[] = [
+                'url' => $row[0]
+            ];
+        }
+        fclose($h);
+
+        return $contexts;
     }
 
     private $product_url;
@@ -150,7 +158,7 @@ class CloudUpgradeVerificationTest extends RemotePrestaShopTest
 
         $this->browser->sendKeys(\WebDriverKeys::ESCAPE); // make stupid modal of makeupatelier disappear
 
-        $this->browser->all('i.fa-building')[0]->click();
+        $this->browser->all('i.fa-building, i.icon-building')[0]->click();
 
         $this->browser
              ->fillIn('#address1', $this->customer['address1'])
@@ -162,7 +170,9 @@ class CloudUpgradeVerificationTest extends RemotePrestaShopTest
              ->click('#submitAddress')
         ;
 
-        $this->browser->waitFor('a.btn.btn-success');
+        if ($this->browser->hasVisible('.alert.alert-danger')) {
+            throw new Exception('Address was not saved.');
+        }
     }
 
     public function test_I_Can_Order_A_Product()
@@ -218,7 +228,15 @@ class CloudUpgradeVerificationTest extends RemotePrestaShopTest
         $this->browser
              ->click('.btn.btn-default.standard-checkout')
              ->clickButtonNamed('processAddress')
-             ->clickLabelFor('cgv')
+        ;
+
+        try {
+            $this->browser->clickLabelFor('cgv');
+        } catch (Exception $e) {
+            // sometimes T&Cs are disabled, never mind
+        }
+
+        $this->browser
              ->clickButtonNamed('processCarrier')
              ->click('a.bankwire')
              ->click('#center_column form button[type="submit"]')
