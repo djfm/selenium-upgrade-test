@@ -175,10 +175,19 @@ class CloudUpgradeVerificationTest extends RemotePrestaShopTest
             'postcode'      => $this->browser->getValue('#postcode'),
             'city'          => $this->browser->getValue('#city'),
             'country'       => $this->browser->getSelectedValue('#id_country'),
-            'state'         => $this->browser->getSelectedValue('#id_state'),
             'phone'         => $this->browser->getValue('#phone'),
             'phone_mobile'  => $this->browser->getValue('#phone_mobile')
         ];
+
+        try {
+            $this->customer['state'] = $this->browser->getSelectedValue('#id_state');
+        } catch (Exception $e) {
+            // okay
+        }
+
+        if ($this->browser->hasVisible('#dni')) {
+            $this->customer['dni'] = $this->browser->getValue('#dni');
+        }
     }
 
     public function test_I_Can_Register_As_A_New_Customer()
@@ -213,9 +222,24 @@ class CloudUpgradeVerificationTest extends RemotePrestaShopTest
              ->fillIn('#phone_mobile', $this->customer['phone_mobile'])
         ;
 
-        if ($this->customer['state']) {
-            $this->browser->select('#id_state', $this->customer['state']);
+        if ($this->customer['dni']) {
+            $this->browser->fillIn('#dni', $this->customer['dni']);
         }
+
+        try {
+            if ($this->customer['state']) {
+                $id_state = $this->customer['state'];
+            } else {
+                $id_state = array_keys(
+                    $this->browser->getSelectOptions('#id_state')
+                )[1];
+            }
+
+            $this->browser->select('#id_state', $id_state);
+        } catch (Exception $e) {
+            // okay
+        }
+
 
         $this->browser
               ->click('#submitAddress')
