@@ -15,10 +15,18 @@ class CloudUpgradeVerificationTest extends RemotePrestaShopTest
         $contexts = [];
 
         $h = fopen(__DIR__ . DIRECTORY_SEPARATOR . 'urls.csv', 'r');
+
+        $headers = null;
         while (($row = fgetcsv($h))) {
-            $contexts[] = [
-                'url' => $row[0]
-            ];
+
+            if (null === $headers) {
+                $headers = $row;
+            } else {
+                $row = array_combine($headers, $row);
+                $contexts[] = [
+                    'url' => 'http://' . $row['domain']
+                ];
+            }
         }
         fclose($h);
 
