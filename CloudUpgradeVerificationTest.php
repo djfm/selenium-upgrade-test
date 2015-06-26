@@ -118,10 +118,14 @@ class CloudUpgradeVerificationTest extends RemotePrestaShopTest
     {
         $this->shop->get('back-office')->visitController('AdminProducts');
         $this->browser
+             // only consider active products
              ->select('[name="productFilter_active"]', 1)
              ->click('#submitFilterButtonproduct')
+             // sort by decreasing quantity to be sure the product can be ordered later
+             ->click('{xpath}//a[contains(@href, "productOrderby=sav_quantity&productOrderway=desc")]')
         ;
 
+        // choose first enabled product with stock
         $this->browser->click('#table-product tr.odd:first-child a.edit');
 
         $this->product_url = $this->browser->getAttribute('#page-header-desc-product-preview', 'href');
