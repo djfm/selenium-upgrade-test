@@ -160,7 +160,11 @@ class CloudUpgradeVerificationTest extends RemotePrestaShopTest
     public function test_I_Can_Get_An_Address()
     {
         $this->shop->get('back-office')->visitController('AdminAddresses');
-        $this->browser->click('#form-address table tr.odd:first-child a.edit');
+        $this->browser
+             // order by decreasing id to increase likelihood of finding a valid address
+             ->click('{xpath}//a[contains(@href, "addressOrderby=id_address&addressOrderway=desc")]')
+             ->click('#form-address table tr.odd:first-child a.edit')
+        ;
 
         $uid = md5(microtime());
         $this->customer = [
