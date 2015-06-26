@@ -12,6 +12,12 @@ class CloudUpgradeVerificationTest extends RemotePrestaShopTest
 {
     public function contextProvider()
     {
+        if (($domain = getenv('DOMAIN'))) {
+            return [[
+                'url' => 'http://' . $domain
+            ]];
+        }
+
         $contexts = [];
 
         $h = fopen(__DIR__ . DIRECTORY_SEPARATOR . 'urls.csv', 'r');
@@ -52,6 +58,11 @@ class CloudUpgradeVerificationTest extends RemotePrestaShopTest
 
     public function test_Onboarding_Module_Is_Displayed()
     {
+        if (getenv('NO_CHECKLIST')) {
+            $this->info('Skipping checklist-related test as asked.');
+            return;
+        }
+
         $this->browser->visit($this->shop->getBackOfficeURL());
         $this->browser
                 ->waitFor('.upgrade-check.panel-popup')
@@ -66,6 +77,11 @@ class CloudUpgradeVerificationTest extends RemotePrestaShopTest
 
     public function test_Checklist_Can_Be_Checked()
     {
+        if (getenv('NO_CHECKLIST')) {
+            $this->info('Skipping checklist-related test as asked.');
+            return;
+        }
+
         foreach ($this->browser->all('.content-checklist li[onclick]') as $checkListItem) {
             $checkListItem->click();
         }
@@ -79,6 +95,11 @@ class CloudUpgradeVerificationTest extends RemotePrestaShopTest
 
     public function test_goLive()
     {
+        if (getenv('NO_CHECKLIST')) {
+            $this->info('Skipping checklist-related test as asked.');
+            return;
+        }
+
         $this->browser
              ->click('.content-checklist .btn.finished')
              ->reload()
