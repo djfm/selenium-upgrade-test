@@ -175,6 +175,7 @@ class CloudUpgradeVerificationTest extends RemotePrestaShopTest
             'postcode'      => $this->browser->getValue('#postcode'),
             'city'          => $this->browser->getValue('#city'),
             'country'       => $this->browser->getSelectedValue('#id_country'),
+            'state'         => $this->browser->getSelectedValue('#id_state'),
             'phone'         => $this->browser->getValue('#phone'),
             'phone_mobile'  => $this->browser->getValue('#phone_mobile')
         ];
@@ -210,7 +211,14 @@ class CloudUpgradeVerificationTest extends RemotePrestaShopTest
              ->fillIn('#postcode', $this->customer['postcode'])
              ->fillIn('#phone', $this->customer['phone'])
              ->fillIn('#phone_mobile', $this->customer['phone_mobile'])
-             ->click('#submitAddress')
+        ;
+
+        if ($this->customer['state']) {
+            $this->browser->select('#id_state', $this->customer['state']);
+        }
+
+        $this->browser
+              ->click('#submitAddress')
         ;
 
         if ($this->browser->hasVisible('.alert.alert-danger')) {
