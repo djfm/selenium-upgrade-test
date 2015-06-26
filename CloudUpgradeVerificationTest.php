@@ -160,7 +160,13 @@ class CloudUpgradeVerificationTest extends RemotePrestaShopTest
              ->click('#SubmitCreate')
              ->fillIn('#customer_firstname' , $this->customer['firstname'])
              ->fillIn('#customer_lastname'  , $this->customer['lastname'])
-             ->fillIn('#passwd', '123456789')
+             ->fillIn('#passwd', '123456789');
+
+        foreach ($this->browser->all('#center_column input[type="checkbox"]') as $checkbox) {
+            $checkbox->click();
+        }
+
+        $this->browser
              ->click('#submitAccount')
         ;
 
