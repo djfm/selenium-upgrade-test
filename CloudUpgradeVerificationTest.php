@@ -43,6 +43,15 @@ class CloudUpgradeVerificationTest extends RemotePrestaShopTest
     private $customer;
     private $id_order;
 
+    private function visitProduct($productURL)
+    {
+        $this->browser->visit($productURL);
+        if (strpos($this->browser->getPageSource(), '[Debug] This page has moved') !== false) {
+            $this->browser->click('a');
+        }
+        return $this;
+    }
+
     /**
      * @beforeClass
      */
@@ -121,16 +130,23 @@ class CloudUpgradeVerificationTest extends RemotePrestaShopTest
              // only consider active products
              ->select('[name="productFilter_active"]', 1)
              ->click('#submitFilterButtonproduct')
-             // sort by decreasing quantity to be sure the product can be ordered later
-             ->click('{xpath}//a[contains(@href, "productOrderby=sav_quantity&productOrderway=desc")]')
         ;
+
+        try {
+            $this->browser
+                 // sort by decreasing quantity to be sure the product can be ordered later
+                 ->click('{xpath}//a[contains(@href, "productOrderby=sav_quantity&productOrderway=desc")]')
+            ;
+        } catch (Exception $e) {
+            // stock management probably just disabled
+        }
 
         // choose first enabled product with stock
         $this->browser->click('#table-product tr.odd:first-child a.edit');
 
         $this->product_url = $this->browser->getAttribute('#page-header-desc-product-preview', 'href');
 
-        $this->browser->visit($this->product_url);
+        $this->visitProduct($this->product_url);
 
         $this->browser->waitFor('#add_to_cart');
     }
@@ -176,8 +192,14 @@ class CloudUpgradeVerificationTest extends RemotePrestaShopTest
             'city'          => $this->browser->getValue('#city'),
             'country'       => $this->browser->getSelectedValue('#id_country'),
             'phone'         => $this->browser->getValue('#phone'),
-            'phone_mobile'  => $this->browser->getValue('#phone_mobile')
+            'phone_mobile'  => ''
         ];
+
+        try {
+            $this->customer['phone_mobile'] = $this->browser->getValue('#phone_mobile');
+        } catch (Exception $e) {
+            // okay
+        }
 
         try {
             $this->customer['state'] = $this->browser->getSelectedValue('#id_state');
@@ -187,6 +209,10 @@ class CloudUpgradeVerificationTest extends RemotePrestaShopTest
 
         if ($this->browser->hasVisible('#dni')) {
             $this->customer['dni'] = $this->browser->getValue('#dni');
+        }
+
+        if (!$this->customer['phone'] && !$this->customer['phone_mobile']) {
+            $this->customer['phone_mobile'] = '0658789566';
         }
     }
 
@@ -205,14 +231,35 @@ class CloudUpgradeVerificationTest extends RemotePrestaShopTest
             $checkbox->click();
         }
 
+        $inlineAddress = $this->browser->hasVisible('#address1');
+        if ($inlineAddress) {
+            // Address form is inside registration form
+            $this->fillAddressForm();
+        }
+
         $this->browser
              ->click('#submitAccount')
         ;
 
         $this->browser->sendKeys(\WebDriverKeys::ESCAPE); // make stupid modal of makeupatelier disappear
 
-        $this->browser->all('i.fa-building, i.icon-building')[0]->click();
+        if (!$inlineAddress) {
+            $this->browser->all('i.fa-building, i.icon-building')[0]->click();
 
+            $this->fillAddressForm();
+
+            $this->browser
+                  ->click('#submitAddress')
+            ;
+
+            if ($this->browser->hasVisible('.alert.alert-danger')) {
+                throw new Exception('Address was not saved.');
+            }
+        }
+    }
+
+    private function fillAddressForm()
+    {
         $this->browser
              ->fillIn('#address1', $this->customer['address1'])
              ->select('#id_country', $this->customer['country'])
@@ -240,19 +287,12 @@ class CloudUpgradeVerificationTest extends RemotePrestaShopTest
             // okay
         }
 
-
-        $this->browser
-              ->click('#submitAddress')
-        ;
-
-        if ($this->browser->hasVisible('.alert.alert-danger')) {
-            throw new Exception('Address was not saved.');
-        }
+        return $this;
     }
 
     public function test_I_Can_Order_A_Product()
     {
-        $this->browser->visit($this->product_url);
+        $this->visitProduct($this->product_url);
 
         sleep(15); // Black magic seems to be going on behind the scene.
 
@@ -269,7 +309,7 @@ class CloudUpgradeVerificationTest extends RemotePrestaShopTest
 
         $this->browser->all('.shopping_cart a')[0]->click();
 
-        if ($this->browser->hasVisible('label[for="cgv"]')) {
+        if ($this->browser->hasVisible('label[for="cgv"]') || $this->browser->hasVisible('p.payment_module a.bankwire')) {
             $id_order = $this->orderOPC();
         } else {
             $id_order = $this->orderFiveSteps();
@@ -286,8 +326,13 @@ class CloudUpgradeVerificationTest extends RemotePrestaShopTest
     {
         $this->info('Proceeding to checkout in OPC.');
 
+        try {
+            $this->browser->clickLabelFor('cgv');
+        } catch (Exception $e) {
+            // sometimes T&Cs are disabled, never mind
+        }
+
         $this->browser
-             ->clickLabelFor('cgv')
              ->waitFor('a.bankwire')
              ->click('a.bankwire')
              ->click('#center_column form button[type="submit"]')
