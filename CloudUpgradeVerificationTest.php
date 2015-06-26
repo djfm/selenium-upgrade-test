@@ -118,18 +118,18 @@ class CloudUpgradeVerificationTest extends RemotePrestaShopTest
              ->waitFor('#anchorBankwire')
         ;
 
-        $just_installed = false;
         try {
             $install_link = $this->browser->find('{xpath}//a[contains(@href, "install=bankwire")]');
             $install_link->click();
-            $just_installed = true;
         } catch (Exception $e) {
-            $this->info('Looks like bankwire is already installed.');
+            $this->info('Looks like bankwire is already installed, will reset it.');
+            $this->shop->get('back-office')->visitController('AdminModules', [
+                'module_name' => 'bankwire',
+                'reset'
+            ]);
         }
 
-        if ($just_installed) {
-            $this->browser->waitFor('div.alert.alert-success');
-        }
+        $this->browser->waitFor('div.alert.alert-success');
     }
 
     public function test_I_Can_Get_An_Address()
